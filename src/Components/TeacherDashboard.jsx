@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 const COLOR_OPTIONS = [
   { label: 'Azul',   key: 'bar-blue',   hex: '#3b82f6' },
   { label: 'Roxo',   key: 'bar-purple', hex: '#7c3aed' },
@@ -13,7 +14,7 @@ const COLOR_MAP = Object.fromEntries(COLOR_OPTIONS.map(c => [c.key, c.hex]));
 // ─── API helpers ──────────────────────────────────────────────────────────────
 const api = async (path, opts = {}) => {
   const token = localStorage.getItem('token');
-  const res = await fetch(`http://localhost:3000${path}`, {
+  const res = await fetch(`${API_URL}${path}`, {
     ...opts,
     headers: {
       'Content-Type': 'application/json',

@@ -6,7 +6,7 @@ import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 const FEYNMAN_LEVELS = ['🔴 Novo', '🟡 Quase lá', '🟢 Explicado'];
 const EBBINGHAUS_LABELS = ['Nunca revisado', 'Revisão 24h', 'Revisão 1 Sem', 'Revisão 1 Mês'];
-
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 function feynmanBadgeClass(feynman) {
   if (!feynman) return '';
   if (feynman.includes('Explicado')) return 'badge-green';
@@ -144,7 +144,7 @@ export default function TopicView({
     const formData = new FormData();
     formData.append('pdfFile', file);
     try {
-      const response = await fetch('http://localhost:3000/api/upload-pdf', { method: 'POST', body: formData });
+      const response = await fetch('${API_URL}/api/upload-pdf', { method: 'POST', body: formData });
       const result = await response.json();
       if (response.ok && result.data) {
         const fileData = { name: file.name, type: file.type, url: URL.createObjectURL(file) };
@@ -180,7 +180,7 @@ export default function TopicView({
     });
 
     try {
-      const response = await fetch('http://localhost:3000/api/upload-md', { method: 'POST', body: formData });
+      const response = await fetch('${API_URL}/api/upload-md', { method: 'POST', body: formData });
       const result = await response.json();
       if (response.ok && result.data) {
         // Inclui o conteúdo MD no fileData para exibição inline
