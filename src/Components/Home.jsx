@@ -27,7 +27,6 @@ function calculatePriority(topic, subject, todayDate) {
   const tags = [];
   const today = new Date(todayDate + 'T00:00:00');
 
-  // Verifica o prazo do tópico ou o PRAZO MAIS PRÓXIMO da matéria
   let effectiveDeadline = topic.deadline;
   if (!effectiveDeadline && subject?.deadlines?.length > 0) {
     const futureDeadlines = subject.deadlines.filter(d => d.date >= todayDate).sort((a,b) => a.date.localeCompare(b.date));
@@ -58,18 +57,22 @@ function calculatePriority(topic, subject, todayDate) {
 
 export default function HomeView({ 
   subjects, topics, onOpenSubject, onAddSubject, onDeleteSubject, 
-  onAddSubjectDeadline, onRemoveSubjectDeadline 
+  onAddSubjectDeadline, onRemoveSubjectDeadline, onBulkImport
 }) {
   const [newName, setNewName] = useState('');
   const [colorKey, setColorKey] = useState('bar-blue');
   const [confirmDelete, setConfirmDelete] = useState(null);
   
-  // Estados temporários para os formulários de adição de datas
   const [newDeadlineTitle, setNewDeadlineTitle] = useState({});
   const [newDeadlineDate, setNewDeadlineDate] = useState({});
 
   const [viewMonth, setViewMonth] = useState(new Date().getMonth());
   const [viewYear, setViewYear] = useState(new Date().getFullYear());
+
+  // --- ESTADOS DO MODAL DE IMPORTAÇÃO ---
+  const [importModalSubject, setImportModalSubject] = useState(null);
+  const [importTopicTitle, setImportTopicTitle] = useState('');
+  const [importText, setImportText] = useState('');
 
   const todayDate = getTodayDate();
   const pendingReviews = topics.filter(t => t.nextReviewDate && t.nextReviewDate <= todayDate).length;
@@ -81,16 +84,21 @@ export default function HomeView({
     setNewName('');
   };
 
+  const handleExecuteImport = () => {
+    if (!importTopicTitle.trim() || !importText.trim()) return;
+    onBulkImport(importModalSubject, importTopicTitle, importText);
+    setImportModalSubject(null);
+    setImportTopicTitle('');
+    setImportText('');
+  };
+
   const prevMonth = () => { if (viewMonth === 0) { setViewMonth(11); setViewYear(viewYear - 1); } else setViewMonth(viewMonth - 1); };
   const nextMonth = () => { if (viewMonth === 11) { setViewMonth(0); setViewYear(viewYear + 1); } else setViewMonth(viewMonth + 1); };
 
-  // Agrupa TODAS as datas de provas da matéria + prazos de tópicos
   const allEvents = [];
   subjects.forEach(s => {
     if (s.deadlines && s.deadlines.length > 0) {
-      s.deadlines.forEach(d => {
-        allEvents.push({ id: `s-${s.id}-d-${d.id}`, date: d.date, title: d.title, subjectName: s.name, color: s.color, type: 'subject' });
-      });
+      s.deadlines.forEach(d => { allEvents.push({ id: `s-${s.id}-d-${d.id}`, date: d.date, title: d.title, subjectName: s.name, color: s.color, type: 'subject' }); });
     }
   });
   topics.forEach(t => {
@@ -121,7 +129,7 @@ export default function HomeView({
 
   return (
     <div style={{ maxWidth: 1100, margin: '0 auto', padding: '3rem 1.5rem' }}>
-      {/* HEADER & DASHBOARD (Calendário, Prazos, Fila) - Permanece idêntico ao anterior */}
+      
       <header className="fade-up" style={{ marginBottom: '3.5rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
           <span style={{ fontSize: '1.5rem' }}>🧠</span>
@@ -130,6 +138,7 @@ export default function HomeView({
         <h1 style={{ fontSize: 'clamp(1.8rem, 5vw, 2.8rem)', fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.1, color: 'var(--text-primary)' }}>Sua base de conhecimento</h1>
       </header>
 
+      {/* DASHBOARD PRINCIPAL */}
       <div className="fade-up delay-1" style={{ marginBottom: '3.5rem', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '1.5rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2.5rem' }}>
         
         {/* Calendário */}
@@ -165,7 +174,7 @@ export default function HomeView({
           </div>
         </div>
 
-        {/* Próximos Eventos */}
+        {/* Prazos */}
         <div>
           <div style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: '1rem' }}>Prazos e Provas</div>
           {allEvents.length === 0 ? (
@@ -185,9 +194,7 @@ export default function HomeView({
                       <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{ev.type === 'subject' ? '🚨' : '📝'} {ev.title}</div>
                       <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{ev.subjectName}</div>
                     </div>
-                    <div style={{ fontSize: '0.7rem', fontWeight: 700, padding: '0.2rem 0.5rem', borderRadius: '4px', background: isUrgent ? '#ef444420' : 'var(--bg-surface)', color: isUrgent ? '#ef4444' : 'var(--text-secondary)' }}>
-                      {diffText}
-                    </div>
+                    <div style={{ fontSize: '0.7rem', fontWeight: 700, padding: '0.2rem 0.5rem', borderRadius: '4px', background: isUrgent ? '#ef444420' : 'var(--bg-surface)', color: isUrgent ? '#ef4444' : 'var(--text-secondary)' }}>{diffText}</div>
                   </div>
                 );
               })}
@@ -195,11 +202,11 @@ export default function HomeView({
           )}
         </div>
 
-        {/* Fila de Estudos Inteligente */}
+        {/* Fila */}
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <div style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: '1rem' }}>Fila de Estudos</div>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '250px', overflowY: 'auto', paddingRight: '0.5rem' }}>
-            {smartQueue.length === 0 ? <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>Nenhum tópico para estudar. Crie um!</div> : (
+            {smartQueue.length === 0 ? <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>Nenhum tópico para estudar.</div> : (
               smartQueue.map((topic, i) => (
                 <div key={topic.id} onClick={() => onOpenSubject(topic.subjectId)} style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', background: 'var(--bg-elevated)', padding: '0.75rem', borderRadius: 'var(--radius)', borderLeft: `3px solid ${COLOR_MAP[topic.subjColor] || 'var(--accent)'}`, cursor: 'pointer', transition: 'transform 0.2s' }} onMouseEnter={e => e.currentTarget.style.transform = 'translateX(4px)'} onMouseLeave={e => e.currentTarget.style.transform = 'translateX(0)'}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}><span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{topic.title}</span><span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{topic.subjName}</span></div>
@@ -218,7 +225,7 @@ export default function HomeView({
       <form onSubmit={handleSubmit} className="fade-up delay-2" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '1.5rem', marginBottom: '2.5rem' }}>
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.68rem', letterSpacing: '0.14em', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '1rem' }}>Nova matéria</div>
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
-          <input className="input-field" style={{ flex: '1 1 240px', minWidth: 180 }} type="text" placeholder="Ex: Cálculo, Filosofia..." value={newName} onChange={e => setNewName(e.target.value)} />
+          <input className="input-field" style={{ flex: '1 1 240px', minWidth: 180 }} type="text" placeholder="Ex: Inteligência Artificial..." value={newName} onChange={e => setNewName(e.target.value)} />
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             {COLOR_OPTIONS.map(opt => <button key={opt.key} type="button" onClick={() => setColorKey(opt.key)} title={opt.label} style={{ width: 22, height: 22, borderRadius: '50%', background: opt.preview, border: colorKey === opt.key ? '2px solid var(--text-primary)' : '2px solid transparent', cursor: 'pointer', outline: colorKey === opt.key ? '2px solid var(--accent)' : 'none', outlineOffset: 2, transition: 'outline 0.15s' }} />)}
           </div>
@@ -226,7 +233,7 @@ export default function HomeView({
         </div>
       </form>
 
-      {/* GRID DE MATÉRIAS ATUALIZADO (Com array de Deadlines) */}
+      {/* GRID DE MATÉRIAS */}
       {subjects.length === 0 ? (
         <div className="fade-up delay-3" style={{ textAlign: 'center', padding: '4rem 2rem', border: '1px dashed var(--border)', borderRadius: 'var(--radius-lg)', color: 'var(--text-muted)' }}>
           <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>📚</div>
@@ -240,7 +247,6 @@ export default function HomeView({
             const barClass = subject.color || 'bar-blue';
             const delayClass = `delay-${Math.min(i + 3, 6)}`;
             
-            // Variáveis locais para o mini-form da matéria específica
             const localTitle = newDeadlineTitle[subject.id] || '';
             const localDate = newDeadlineDate[subject.id] || '';
 
@@ -253,10 +259,9 @@ export default function HomeView({
                   <h2 style={{ fontWeight: 700, fontSize: '1.2rem', letterSpacing: '-0.02em', marginBottom: '0.5rem', paddingRight: '2rem' }}>{subject.name}</h2>
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'var(--text-muted)', letterSpacing: '0.05em', marginBottom: '1.2rem' }}>{subTopics.length} {subTopics.length === 1 ? 'tópico' : 'tópicos'}</div>
 
-                  {/* NOVO: Lista de Datas da Matéria */}
+                  {/* Datas */}
                   <div style={{ marginBottom: '1.2rem', padding: '0.75rem', background: 'var(--bg-elevated)', borderRadius: 'var(--radius)', border: '1px dashed var(--border)' }}>
                     <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Grandes Entregas / Provas:</div>
-                    
                     {subject.deadlines?.length > 0 && (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', marginBottom: '0.75rem' }}>
                         {subject.deadlines.map(d => (
@@ -267,16 +272,10 @@ export default function HomeView({
                         ))}
                       </div>
                     )}
-
                     <div style={{ display: 'flex', gap: '0.3rem' }}>
                       <input type="text" placeholder="Ex: P1" className="input-field" style={{ flex: 1, padding: '0.3rem', fontSize: '0.75rem' }} value={localTitle} onChange={e => setNewDeadlineTitle({ ...newDeadlineTitle, [subject.id]: e.target.value })} />
                       <input type="date" className="input-field" style={{ width: '100px', padding: '0.3rem', fontSize: '0.75rem' }} value={localDate} onChange={e => setNewDeadlineDate({ ...newDeadlineDate, [subject.id]: e.target.value })} />
-                      <button 
-                        type="button" className="btn-primary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }} 
-                        onClick={() => { onAddSubjectDeadline(subject.id, localTitle, localDate); setNewDeadlineTitle({ ...newDeadlineTitle, [subject.id]: '' }); setNewDeadlineDate({ ...newDeadlineDate, [subject.id]: '' }); }}
-                      >
-                        +
-                      </button>
+                      <button type="button" className="btn-primary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }} onClick={() => { onAddSubjectDeadline(subject.id, localTitle, localDate); setNewDeadlineTitle({ ...newDeadlineTitle, [subject.id]: '' }); setNewDeadlineDate({ ...newDeadlineDate, [subject.id]: '' }); }}>+</button>
                     </div>
                   </div>
 
@@ -286,11 +285,50 @@ export default function HomeView({
                       <div style={{ height: 3, background: 'var(--bg-elevated)', borderRadius: 99, overflow: 'hidden' }}><div style={{ width: `${pct}%`, height: '100%', background: 'var(--accent)', borderRadius: 99, transition: 'width 0.5s ease' }} /></div>
                     </div>
                   )}
-                  <button onClick={() => onOpenSubject(subject.id)} className="btn-secondary" style={{ width: '100%', textAlign: 'center', fontWeight: 600, fontSize: '0.85rem' }}>Abrir matéria →</button>
+                  
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button onClick={() => onOpenSubject(subject.id)} className="btn-secondary" style={{ flex: 1, textAlign: 'center', fontWeight: 600, fontSize: '0.85rem' }}>Abrir →</button>
+                    <button onClick={() => setImportModalSubject(subject.id)} className="btn-primary" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text-primary)', padding: '0.5rem 0.75rem' }} title="Importar Sumário de PDF">📥</button>
+                  </div>
                 </div>
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* NOVO MODAL DE IMPORTAÇÃO DE SUMÁRIO */}
+      {importModalSubject && (
+        <div style={{ position: 'fixed', inset: 0, background: '#00000080', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '2rem', maxWidth: 600, width: '90%' }}>
+            <h2 style={{ fontWeight: 700, fontSize: '1.4rem', marginBottom: '0.5rem' }}>Importar PDF como Tópico</h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1.5rem' }}>Dê um nome ao tópico (ex: o nome do PDF) e cole o sumário dele abaixo. O sistema criará o Tópico e vai transformar cada linha em um Subtópico, limpando números de página automaticamente.</p>
+            
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.3rem' }}>Nome do Tópico (O PDF inteiro):</label>
+              <input 
+                type="text" className="input-field" 
+                style={{ width: '100%', padding: '0.8rem', fontSize: '0.9rem' }}
+                placeholder="Ex: Agentes, Espaço de Estados e Formulação..."
+                value={importTopicTitle} onChange={e => setImportTopicTitle(e.target.value)}
+              />
+            </div>
+
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.3rem' }}>Cole o sumário aqui (uma linha = um subtópico):</label>
+              <textarea 
+                className="input-field" 
+                style={{ width: '100%', minHeight: '150px', padding: '1rem', fontFamily: 'var(--font-mono)', fontSize: '0.85rem', resize: 'vertical' }}
+                placeholder="1 Agentes ............ 3&#10;1.1 O que é um agente? ............ 3"
+                value={importText} onChange={e => setImportText(e.target.value)}
+              />
+            </div>
+            
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+              <button onClick={() => setImportModalSubject(null)} className="btn-secondary">Cancelar</button>
+              <button onClick={handleExecuteImport} className="btn-primary">Criar Tópico</button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -302,7 +340,7 @@ export default function HomeView({
             <div style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: '1.5rem' }}>Todos os tópicos associados também serão removidos.</div>
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
               <button onClick={() => setConfirmDelete(null)} className="btn-secondary">Cancelar</button>
-              <button onClick={() => { onDeleteSubject(confirmDelete); setConfirmDelete(null); }} style={{ background: '#ef444420', border: '1px solid #ef444440', borderRadius: 'var(--radius)', color: '#f87171', cursor: 'pointer', fontFamily: 'var(--font-heading)', fontWeight: 600, fontSize: '0.875rem', padding: '0.75rem 1.25rem' }}>Excluir</button>
+              <button onClick={() => { onDeleteSubject(confirmDelete); setConfirmDelete(null); }} style={{ background: '#ef444420', border: '1px solid #ef444440', borderRadius: 'var(--radius)', color: '#f87171', cursor: 'pointer', fontWeight: 600, fontSize: '0.875rem', padding: '0.75rem 1.25rem' }}>Excluir</button>
             </div>
           </div>
         </div>
