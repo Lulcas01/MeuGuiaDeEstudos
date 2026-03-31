@@ -4,8 +4,9 @@ import TopicView from './Components/TopicView';
 import LoginView from './Components/Login';
 import TeacherDashboard from './Components/TeacherDashboard';
 
+// 👇 CORRIGIDO: Fallback para localhost
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
-const API_URL = import.meta.env.VITE_API_URL || '${API_URL}';
 export const getTodayDate = () => {
   const today = new Date();
   return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -51,12 +52,14 @@ export default function App() {
   // BUSCA INICIAL DO BANCO (apenas alunos)
   useEffect(() => {
     if (isAuthenticated && userRole === 'student') {
-      fetch('${API_URL}/api/subjects')
+      // 👇 CORRIGIDO: Crases em vez de aspas simples
+      fetch(`${API_URL}/api/subjects`)
         .then(res => res.json())
         .then(data => setSubjects(data.map(s => ({ ...s, id: s._id }))))
         .catch(err => console.error('Erro ao carregar matérias:', err));
 
-      fetch('${API_URL}/api/topics')
+      // 👇 CORRIGIDO: Crases em vez de aspas simples
+      fetch(`${API_URL}/api/topics`)
         .then(res => res.json())
         .then(data => setTopics(data.map(t => ({ ...t, id: t._id }))))
         .catch(err => console.error('Erro ao carregar tópicos:', err));
@@ -111,7 +114,8 @@ export default function App() {
     const color = colorKey || COLORS[subjects.length % COLORS.length];
     const newSubjectData = { name, color, deadlines: [] };
     try {
-      const response = await fetch('${API_URL}/api/subjects', {
+      // 👇 CORRIGIDO: Crases
+      const response = await fetch(`${API_URL}/api/subjects`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newSubjectData)
       });
@@ -164,7 +168,8 @@ export default function App() {
       reviewLevel: 0, lastStudiedDate: null, nextReviewDate: getTodayDate()
     };
     try {
-      const response = await fetch('${API_URL}/api/topics', {
+      // 👇 CORRIGIDO: Crases
+      const response = await fetch(`${API_URL}/api/topics`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newTopicData)
       });
@@ -193,7 +198,8 @@ export default function App() {
     };
 
     try {
-      const response = await fetch('${API_URL}/api/topics', {
+      // 👇 CORRIGIDO: Crases
+      const response = await fetch(`${API_URL}/api/topics`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newTopicData)
       });
@@ -217,7 +223,8 @@ export default function App() {
     };
 
     try {
-      const response = await fetch('${API_URL}/api/topics', {
+      // 👇 CORRIGIDO: Crases
+      const response = await fetch(`${API_URL}/api/topics`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newTopicData)
       });

@@ -4,9 +4,11 @@ import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
+
 const FEYNMAN_LEVELS = ['🔴 Novo', '🟡 Quase lá', '🟢 Explicado'];
 const EBBINGHAUS_LABELS = ['Nunca revisado', 'Revisão 24h', 'Revisão 1 Sem', 'Revisão 1 Mês'];
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
 function feynmanBadgeClass(feynman) {
   if (!feynman) return '';
   if (feynman.includes('Explicado')) return 'badge-green';
@@ -55,7 +57,6 @@ function MarkdownViewer({ content }) {
         remarkPlugins={[remarkMath]}
         rehypePlugins={[rehypeKatex]}
         components={{
-          // Aqui você mantém o visual que já tinha criado:
           h1: ({node, ...props}) => <h1 style={{ fontSize: '1.4rem', fontWeight: 800, margin: '1.5rem 0 0.75rem', color: 'var(--text-primary)' }} {...props} />,
           h2: ({node, ...props}) => <h2 style={{ fontSize: '1.15rem', fontWeight: 700, margin: '1.2rem 0 0.5rem', color: 'var(--text-primary)', borderBottom: '1px solid var(--border)', paddingBottom: '0.3rem' }} {...props} />,
           h3: ({node, ...props}) => <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: '1rem 0 0.4rem', color: 'var(--text-primary)' }} {...props} />,
@@ -144,7 +145,8 @@ export default function TopicView({
     const formData = new FormData();
     formData.append('pdfFile', file);
     try {
-      const response = await fetch('${API_URL}/api/upload-pdf', { method: 'POST', body: formData });
+      // 👇 CORRIGIDO: Crases aplicadas aqui
+      const response = await fetch(`${API_URL}/api/upload-pdf`, { method: 'POST', body: formData });
       const result = await response.json();
       if (response.ok && result.data) {
         const fileData = { name: file.name, type: file.type, url: URL.createObjectURL(file) };
@@ -180,7 +182,8 @@ export default function TopicView({
     });
 
     try {
-      const response = await fetch('${API_URL}/api/upload-md', { method: 'POST', body: formData });
+      // 👇 CORRIGIDO: Crases aplicadas aqui
+      const response = await fetch(`${API_URL}/api/upload-md`, { method: 'POST', body: formData });
       const result = await response.json();
       if (response.ok && result.data) {
         // Inclui o conteúdo MD no fileData para exibição inline

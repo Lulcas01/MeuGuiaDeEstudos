@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 export default function LoginView({ onLogin }) {
   const [role, setRole] = useState('student'); // 'student' | 'teacher'
   const [email, setEmail] = useState('');
@@ -7,7 +7,7 @@ export default function LoginView({ onLogin }) {
   const [isRegistering, setIsRegistering] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage('');
